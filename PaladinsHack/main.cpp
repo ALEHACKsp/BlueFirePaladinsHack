@@ -20,6 +20,9 @@ bool boxESPEnabled = true;
 bool hpESPEnabled = true;
 bool thirdPerson = true;
 bool glowEnabled = true;
+bool noRecoil = true;
+bool noSpread = true;
+bool nameESP = true;
 
 struct Vec2
 {
@@ -29,6 +32,7 @@ public:
 };
 
 void ESPLoop();
+void RecoilLoop();
 
 uint64_t process_base = 0;
 
@@ -224,14 +228,6 @@ int CurrentHealth;
 float CurrentFOV;
 int CurrentLoopFrame = 0;
 
-struct FRecoilSettings
-{
-	int                                                bUsesRecoil;                                              // 0x0000(0x0004)
-	float                                              fRecoilReductionPerSec;                                   // 0x0004(0x0004)
-	float                                              fRecoilCenterDelay;                                       // 0x0008(0x0004)
-	float                                              fRecoilSmoothRate;                                        // 0x000C(0x0004)
-};
-
 bool MainAddress() {
 #define NAMEOF(name) #name // USE FOR DEBUGGING
 #define CHECKVAL(_name)		\
@@ -355,6 +351,14 @@ void CallAimbot() {
 	}
 }
 
+void RecoilLoop() {
+	if(!IsValid(CurrentAcknowledgedPawn.data)) return;
+	auto wep = CurrentAcknowledgedPawn.GetWeapon();
+	if(!IsValid(wep.data)) return;
+	wep.NoRecoil(noRecoil);
+	wep.NoSpread(noSpread);
+}
+
 void ESPLoop() {
 	APawn CurrentPawn = CurrentPawnList;
 	int players = 0;
@@ -462,6 +466,10 @@ void ESPLoop() {
 					g_overlay->draw_text(pos.x + flWidth + 10, smax.y, D2D1::ColorF(1.f, 1.f, 0), "HP:%d", (Hp));
 				}
 
+				if(nameESP) {
+					g_overlay->draw_text(pos.x + flWidth + 10, smax.y + (hpESPEnabled ? 10 : 0), D2D1::ColorF(1.f, 1.f, 0), "%s", repInfo.GetName().ToString());
+				}
+
 				if(isAimbotActive && isPawnVisible && !Locked) {
 					Vec2 headPos;
 					if(W2S(posHead, headPos, Rotation, RealLocation, CurrentFOV))
@@ -502,7 +510,23 @@ void ESPLoop() {
 		CallAimbot();
 	}
 
-	g_overlay->draw_text(5, 5, D2D1::ColorF(0.f, 0.0f, 1.f), "BLUEFIRE1337 PALADINS Running");
+	auto running = "";
+	auto loopFrame = (frame % 400);
+	if(loopFrame < 100) {
+		running = "|";
+	}
+	else if(loopFrame < 200) {
+		running = "/";
+	}
+	else if(loopFrame < 300) {
+		running = "-";
+	}
+	else if(loopFrame < 400) {
+		running = "\\";
+	}
+
+	// this is under the GPL-v3, do not sell this and give credit
+	g_overlay->draw_text(5, 5, D2D1::ColorF(0.18f, 0.24f, 0.64f), "BLUEFIRE1337 PALADINS %s", running);
 }
 
 static void render(FOverlay* overlay)
@@ -515,6 +539,9 @@ static void render(FOverlay* overlay)
 		frame++;
 
 		HackTick();
+		if(frame % 60 == 0) { // once a second (given a 60hz updaterate) because the results are cached 
+			RecoilLoop();
+		}
 
 		//	overlay->draw_text(200, 200, D2D1::ColorF(1.f, 1.f, 0), "render %d", frame
 		overlay->end_scene();
@@ -554,7 +581,7 @@ static void _init(FOverlay* overlay)
 
 int main()
 {
-	SetConsoleTitle("BLUEFIRE1337's Paladins Cheat");
+	SetConsoleTitle("BLUEFIRE1337's Paladins Cheat V2");
 	SetUnhandledExceptionFilter(SimplestCrashHandler);
 	//initTrace();
 

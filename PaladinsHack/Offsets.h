@@ -1,42 +1,49 @@
-//BLUEFIRE1337 PALADINS SDK - UPDATED 2021-07-22
+//BLUEFIRE1337 PALADINS SDK - UPDATED 2021-08-19
 #pragma once
 
-constexpr auto ENGINE = 0x371D890; //process_base + ENGINE -> UEngine 
+constexpr auto ENGINE = 0x371E880; // Paladins.exe + ENGINE -> UEngine 
 
-constexpr auto LOCALPLAYER = 0x6D8;//0x6D4; //UEngine -> localPlayer
-constexpr auto CONTROLLER = 0x68; //localPlayer -> controller
+constexpr auto LOCALPLAYER = 0x6D8; // UEngine -> ULocalPlayer
+constexpr auto CONTROLLER = 0x68; // ULocalPlayer -> APlayerController
 
-constexpr auto ROTATION = 0x008C; // controller -> rotation | FRotator
-constexpr auto WORLD_INFO = 0x0120; // controller -> worldInfo
+constexpr auto ROTATION = 0x008C; // APlayerController -> FRotator
+constexpr auto WORLD_INFO = 0x0120; // APlayerController -> AWorldInfo
 
-constexpr auto ACKNOWLEDGEDPAWN = 0x0498; //controller -> acknowledgedPawn
-constexpr auto REPLICATIONINFO = 0x0290; //controller -> replicationInfo
-constexpr auto PLAYER_FOV_MULTIPLIER = 0x04CC; //controller -> FOVMultiplier, aka LODDistanceFactor | float
-constexpr auto CAMERA = 0x0478; //controller -> camera
+constexpr auto ACKNOWLEDGEDPAWN = 0x0498; // APlayerController -> acknowledgedPawn | APawn
 
-constexpr auto REAL_LOCATION = 0x0494; // camera -> reallocation | FVector
-constexpr auto DEAFULT_FOV = 0x0290; //camera -> fov | float
-//FOV = DEAFULT_FOV * PLAYER_FOV_MULTIPLIER
+constexpr auto PLAYER_FOV_MULTIPLIER = 0x04CC; // APlayerController -> FOVMultiplier, aka LODDistanceFactor | float
+constexpr auto CAMERA = 0x0478; // APlayerController -> ACamera
 
-constexpr auto PAWN_LIST = 0x05B4; // worldInfo -> pawnList
-constexpr auto TIMESECONDS = 0x04EC; // worldInfo -> TimeSeconds | float
+constexpr auto REAL_LOCATION = 0x0494; // ACamera -> FVector
+constexpr auto DEAFULT_FOV = 0x0290; // ACamera -> float
+// FOV = DEAFULT_FOV * PLAYER_FOV_MULTIPLIER
 
-constexpr auto TEAM = 0x4DC; // PlayerReplicationInfo -> Team 
-constexpr auto TEAMINDEX = 0x298; // Team -> TeamIndex | int
+constexpr auto PAWN_LIST = 0x05B4; // AWorldInfo -> pawnList
+constexpr auto TIMESECONDS = 0x04EC; // AWorldInfo -> float
 
-constexpr auto AMMO_COUNT = 0x4A4; // weapon -> ammo | int
-constexpr auto AMMO_MAX_COUNT = 0x5F0;// 0x4A8; // weapon -> ammo | int
+constexpr auto TEAM = 0x4DC; // APlayerReplicationInfo -> Team 
+constexpr auto TEAMINDEX = 0x298; // Team -> int
 
-constexpr auto GLOW = 0x674;// awpawn -> glow
-constexpr auto THIRDPERSON = 0x0624;// awpawn -> write float
-constexpr auto WEAPON = 0x04E4; // pawn -> weapon
-constexpr auto BASE_EYE_HEIGHT = 0x03A4; // pawn -> BaseEyeHeight | float
-constexpr auto HEALTH = 0x3C4; // pawn -> hp | int
-constexpr auto LOCATION = 0x0080; // pawn -> location | FVector
-constexpr auto VELOCITY = 0x0190; // pawn -> velocity | FVector
-constexpr auto PLAYER_REPLICATION_INFO = 0x0440; // pawn -> PlayerReplicationInfo
-constexpr auto NEXT_PAWN = 0x02AC; // pawn -> nextpawn
-constexpr auto MESH = 0x048C; // pawn -> mesh
+constexpr auto AMMO_COUNT = 0x4A4; // ATgDevice -> int
+constexpr auto AMMO_MAX_COUNT = 0x5F0; // ATgDevice -> int
 
-constexpr auto BOUNDS = 0x00A0; // mesh -> bounds | FBoxSphereBounds
-constexpr auto LAST_RENDER_TIME = 0x0244; // mesh -> LastRenderTime | float
+constexpr auto GLOW = 0x674; // acknowledgedPawn -> glow
+constexpr auto THIRDPERSON = 0x0624; // acknowledgedPawn -> write float
+constexpr auto WEAPON = 0x04E4; // APawn -> ATgDevice
+constexpr auto BASE_EYE_HEIGHT = 0x03A4; // APawn -> float
+constexpr auto HEALTH = 0x3C4; // APawn -> int
+constexpr auto LOCATION = 0x0080; // APawn -> FVector
+constexpr auto VELOCITY = 0x0190; // APawn -> FVector
+constexpr auto PLAYER_REPLICATION_INFO = 0x0440; // APawn -> APlayerReplicationInfo
+constexpr auto NEXT_PAWN = 0x02AC; // APawn -> next APawn
+constexpr auto MESH = 0x048C; // APawn -> USkeletalMeshComponent
+
+constexpr auto BOUNDS = 0x00A0; // USkeletalMeshComponent -> FBoxSphereBounds
+constexpr auto LAST_RENDER_TIME = 0x0244; // USkeletalMeshComponent -> float
+
+constexpr auto PLAYER_NAME = 0x0290; // APlayerReplicationInfo -> FString
+constexpr auto RECOIL_SETTINGS = 0x0960; // ATgDevice -> FRecoilSettings
+constexpr auto ACCURACY_SETTINGS = 0x08C0; // ATgDevice -> FAccuracySettings
+
+constexpr auto CURRENT_PROJECTILES = 0x0610; // ATgDevice -> TArray<ATgProjectile>
+constexpr auto PROJECTILE_SPEED = 0x0280; // ATgProjectile -> float

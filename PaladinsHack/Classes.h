@@ -35,11 +35,39 @@ public:
 		return read<T>(m_Data + i * 8);
 	}
 
-
 protected:
 	uint64_t m_Data;
 	uint32_t m_nCount;
 	uint32_t m_nMax;
+};
+
+struct FString : private TArray<wchar_t>
+{
+	std::wstring ToWString() const
+	{
+		wchar_t* buffer = new wchar_t[m_nCount];
+		read_array(m_Data, buffer, m_nCount);
+		std::wstring ws(buffer);
+		delete[] buffer;
+
+		return ws;
+	}
+
+	std::string ToString() const
+	{
+		std::wstring ws = ToWString();
+		std::string str(ws.begin(), ws.end());
+
+		return str;
+	}
+};
+
+class ATgProjectile {
+public:
+	inline float GetSpeed() {
+		return read<float>(data + PROJECTILE_SPEED);
+	}
+	uint64_t data;
 };
 
 class USkeletalMeshComponent {
@@ -75,13 +103,100 @@ public:
 		return read<ATeamInfo>(data + TEAM);
 	}
 
+	FString GetName() {
+		return read<FString>(data + PLAYER_NAME);
+	}
+
 	uint64_t data;
 };
 
+struct FRecoilSettings {
+	int                                                bUsesRecoil;                                              // 0x0000(0x0004)
+	float                                              fRecoilReductionPerSec;                                   // 0x0004(0x0004)
+	float                                              fRecoilCenterDelay;                                       // 0x0008(0x0004)
+	float                                              fRecoilSmoothRate;                                        // 0x000C(0x0004) 
+};
+
+struct FAccuracySettings
+{
+	int                                                bUsesAdvancedAccuracy;                                    // 0x0000(0x0004)
+	float                                              fMaxAccuracy;                                             // 0x0004(0x0004)
+	float                                              fMinAccuracy;                                             // 0x0008(0x0004)
+	float                                              fAccuracyLossPerShot;                                     // 0x000C(0x0004)
+	float                                              fAccuracyGainPerSec;                                      // 0x0010(0x0004)
+	float                                              fAccuracyGainDelay;                                       // 0x0014(0x0004)
+	int                                                nNumFreeShots;                                            // 0x0018(0x0004)
+};
+
+static FRecoilSettings oldRecoilSettings;
+static bool hasRecoil = true;
+static FAccuracySettings oldAccuracySettings;
+static bool hasSpread = true;
+
 class ATgDevice {
 public:
+	inline FRecoilSettings GetRecoil() {
+		return read<FRecoilSettings>(data + RECOIL_SETTINGS);
+	}
+
+	inline bool SetRecoil(FRecoilSettings settings) {
+		return write(data + RECOIL_SETTINGS, settings);
+	}
+
+	inline FAccuracySettings GetAccuracy() {
+		return read<FAccuracySettings>(data + ACCURACY_SETTINGS);
+	}
+
+	inline bool SetAccuracy(FAccuracySettings settings) {
+		return write(data + ACCURACY_SETTINGS, settings);
+	}
+
+	inline void NoRecoil(bool toggle = true) {
+		if(toggle) {
+			auto recoil = GetRecoil();
+			if(recoil.bUsesRecoil) {
+				oldRecoilSettings = recoil;
+			}
+			recoil.bUsesRecoil = false;
+			recoil.fRecoilCenterDelay = 0;
+			recoil.fRecoilReductionPerSec = 0;
+			recoil.fRecoilSmoothRate = 0;
+			hasRecoil = false;
+			SetRecoil(recoil);
+		}
+		else {
+			if(!hasRecoil) {
+				hasRecoil = true;
+				SetRecoil(oldRecoilSettings);
+			}
+		}
+	}
+
+
+	inline void NoSpread(bool toggle) {
+		if(toggle) {
+			auto accuracy = GetAccuracy();
+			accuracy.fAccuracyGainPerSec = 0;
+			accuracy.fMaxAccuracy = 1;
+			accuracy.fMinAccuracy = 1;
+			hasSpread = false;
+			SetAccuracy(accuracy);
+		}
+		else {
+			if(!hasSpread) {
+				hasSpread = true;
+				SetAccuracy(oldAccuracySettings);
+			}
+		}
+	}
+
+
 	inline int GetAmmoCount() {
 		return read<int>(data + AMMO_COUNT);
+	}
+
+	inline TArray<ATgProjectile> GetProjectiles() {
+		return read<TArray<ATgProjectile>>(data + CURRENT_PROJECTILES);
 	}
 
 	inline int GetMaxAmmoCount() {
@@ -140,8 +255,9 @@ public:
 			current |= (1u << 17);
 		}
 		else {
-			current &= ~(1u << 17);
+			current &= ~(1u << 17); // air = 2
 		}
+
 		write(offset, current);
 	}
 
