@@ -581,7 +581,7 @@ static void _init(FOverlay* overlay)
 
 int main()
 {
-	SetConsoleTitle("BLUEFIRE1337's Paladins Cheat V2");
+	SetConsoleTitle("BLUEFIRE1337's Paladins Cheat V3");
 	SetUnhandledExceptionFilter(SimplestCrashHandler);
 	//initTrace();
 
