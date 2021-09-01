@@ -51,9 +51,26 @@ public:
 
 struct FRotator
 {
+public:
 	int Pitch;
 	int Yaw;
 	int Roll;
+
+	inline FRotator operator+(FRotator a) {
+		return { a.Pitch + Pitch,a.Yaw + Yaw, a.Roll + Roll };
+	}
+
+	inline FRotator operator-(FRotator a) {
+		return { a.Pitch - Pitch,a.Yaw - Yaw, a.Roll - Roll };
+	}
+
+	inline FRotator operator*(FRotator a) {
+		return { a.Pitch * Pitch,a.Yaw * Yaw, a.Roll * Roll };
+	}
+
+	inline FRotator operator*(float a) {
+		return { (int)round(a * Pitch),(int)round(a * Yaw), (int)round(a * Roll) };
+	}
 };
 
 // ScriptStruct Core.Object.BoxSphereBounds

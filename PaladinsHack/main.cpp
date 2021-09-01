@@ -23,6 +23,10 @@ bool glowEnabled = true;
 bool noRecoil = true;
 bool noSpread = true;
 bool nameESP = true;
+bool smoothing = true;
+bool lockWhenClose = true;
+float smoothingValue = 0.1f; // from 0-1
+bool isPredictionAim = false;
 
 struct Vec2
 {
@@ -55,6 +59,29 @@ namespace math
 #define Const_RadToUnrRot         10430.3783504704527
 #define Const_UnrRotToRad         0.00009587379924285
 #define Const_URotationToRadians  Const_PI / Const_URotation180 
+
+	int ClampYaw(int angle) {
+		static const auto max = Const_URotation180 * 2;
+
+		while(angle > max)
+		{
+			angle -= max;
+		}
+
+		while(angle < 0) {
+			angle += max;
+		}
+		return angle;
+	}
+	int ClampPitch(int angle) {
+		if(angle > 16000) {
+			angle = 16000;
+		}
+		if(angle < -16000) {
+			angle = -16000;
+		}
+		return angle;
+	}
 
 	FRotator VectorToRotation(FVector vVector)
 	{
@@ -274,6 +301,12 @@ bool MainAddress() {
 
 	CurrentAcknowledgedPawn.GetWeapon().SetPerspective(thirdPerson);
 	CurrentAcknowledgedPawn.SetGlowhack(glowEnabled);
+
+	auto location = CurrentAcknowledgedPawn.GetRotation();
+
+	//g_overlay->draw_text_red(100, 100, "Pitch %d\Yaw %d\Roll %d\n", location.Pitch, location.Yaw, location.Roll);
+
+	//exit(0);
 	return true;
 }
 
@@ -326,20 +359,77 @@ void HackTick() {
 	}
 }
 
+float speed = 7000.0f;
 void CallAimbot() {
 	if(!IsValid(LockedPawn.data)) return;
+
 	int Hp = LockedPawn.GetHealth();
 
 	if(Hp > 1)
 	{
+		//bool bChicken = read< LockedPawn(pawn->m_nBodyMeshAsmId() == 9204 ? true : false; // FIND CHICKEN
 		FRotator AimRotation = FRotator{ 0, 0, 0 };
 
 		bool isPawnVisible = LockedPawn.GetMesh().IsVisible(CurrentWorldInfo.GetTimeSeconds());
 
 		if(isPawnVisible)
 		{
+			FVector TargetLocation = LockedPawn.GetLocation();
+			if(isPredictionAim) {
+				auto currentProjectiles = CurrentAcknowledgedPawn.GetWeapon().GetProjectiles();
+
+				if(currentProjectiles.Length() > 0)
+				{
+					speed = currentProjectiles.GetById(0).GetSpeed();
+				}
+
+				FVector TargetVelocity = LockedPawn.GetVelocity();
+				float TravelTime = math::GetDistance(CurrentAcknowledgedPawn.GetLocation(), TargetLocation) / speed;
+				//printf("TravelTime: %f", TravelTime);
+				TargetLocation = {
+					(TargetLocation.X + TargetVelocity.X * TravelTime),
+					(TargetLocation.Y + TargetVelocity.Y * TravelTime),
+					 TargetLocation.Z
+				};
+			}
+
 			FVector RealLocation = CurrentCamera.GetRealLocation();
-			math::AimAtVector(LockedPawn.GetLocation() + FVector(0, 0, LockedPawn.GetEyeHeight()), RealLocation, AimRotation);
+			math::AimAtVector(TargetLocation + FVector(0, 0, LockedPawn.GetEyeHeight()), RealLocation, AimRotation);
+
+			AimRotation.Yaw = math::ClampYaw(AimRotation.Yaw);
+			AimRotation.Pitch = math::ClampPitch(AimRotation.Pitch);
+
+			if(smoothing) {
+				FRotator currentRotation = CurrentController.GetRotation();
+				currentRotation.Roll = 0;
+
+				auto diff = currentRotation - AimRotation;
+
+				auto realDiff = diff;
+				auto a = math::ClampYaw(currentRotation.Yaw);
+				auto b = math::ClampYaw(AimRotation.Yaw);
+				const auto Full360 = Const_URotation180 * 2;
+
+				auto dist1 = -(a - b + Full360) % Full360;
+				auto dist2 = (b - a + Full360) % Full360;
+
+				auto dist = dist1;
+				if(abs(dist2) < abs(dist1)) {
+					dist = dist2;
+				}
+
+				auto smoothAmount = smoothingValue;
+
+				if(lockWhenClose && abs(dist) + abs(diff.Pitch) < Const_URotation180 / 100) {
+					smoothAmount = 1;
+				}
+
+				diff.Yaw = (int)(dist * smoothAmount);
+				diff.Pitch = (int)(diff.Pitch * smoothAmount);
+				//g_overlay->draw_text_red(200, 200, "%d -> %d, (%d,%d) at %d", math::ClampYaw(currentRotation.Yaw) * 360 / Full360, math::ClampYaw(AimRotation.Yaw) * 360 / Full360, dist1 * 360 / Full360, dist2 * 360 / Full360, dist * 360 / Full360);
+				AimRotation = currentRotation + diff;
+			}
+			AimRotation.Pitch = AimRotation.Pitch;
 			CurrentController.SetRotation(AimRotation);
 		}
 	}
@@ -441,9 +531,14 @@ void ESPLoop() {
 		const float offsetCircle = 10.0f;
 
 		auto tracerColor = D2D1::ColorF(isPawnVisible ? 0.f : red, min(250, tracerDistance) / 255.f, isPawnVisible ? red : 0);
+		if(LockedPawn.data == CurrentPawn.data) {
+			tracerColor = D2D1::ColorF(1.0f, 0, 1.0f);
+		}
+
 		if(tracersEnabled) {
 			g_overlay->draw_line(ScreenCenterX + normalizedHead.x * offsetCircle, ScreenCenterY + normalizedHead.y * offsetCircle, pos.x, pos.y, tracerColor);
 		}
+
 
 		try {
 			if(W2S(min, smin, Rotation, RealLocation, CurrentFOV) &&
@@ -463,7 +558,9 @@ void ESPLoop() {
 
 				//HP
 				if(hpESPEnabled) {
-					g_overlay->draw_text(pos.x + flWidth + 10, smax.y, D2D1::ColorF(1.f, 1.f, 0), "HP:%d", (Hp));
+					auto maxHP = CurrentPawn.GetMaxHealth();
+					//auto procentage = Hp * 100 / maxHP;
+					g_overlay->draw_text(pos.x + flWidth + 10, smax.y, D2D1::ColorF(1.f, 1.f, 0), "%d / %d", Hp, maxHP);
 				}
 
 				if(nameESP) {
@@ -509,6 +606,9 @@ void ESPLoop() {
 		Locked = true;
 		CallAimbot();
 	}
+
+	//auto location = CurrentController.GetRotation();
+	//g_overlay->draw_text_red(100, 100, "Pitch %d\Yaw %d\Roll %d\n", location.Pitch, location.Yaw, location.Roll);
 
 	auto running = "";
 	auto loopFrame = (frame % 400);

@@ -217,7 +217,19 @@ public:
 	}
 
 	inline int GetHealth() {
-		return read<int>(data + HEALTH);
+		return read<int>(data + GET_HEALTH);
+	}
+
+	inline int GetMaxHealth() {
+		return (int)read<float>(data + MAX_HEALTH);
+	}
+
+	inline bool SetHealth(float hp) {
+		return write<float>(data + HEALTH, hp);
+	}
+
+	inline int SetMaxHealth(float hp) {
+		return write<float>(data + MAX_HEALTH, hp);
 	}
 
 	inline FVector GetLocation() {
