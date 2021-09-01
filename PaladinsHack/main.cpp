@@ -302,11 +302,6 @@ bool MainAddress() {
 	CurrentAcknowledgedPawn.GetWeapon().SetPerspective(thirdPerson);
 	CurrentAcknowledgedPawn.SetGlowhack(glowEnabled);
 
-	auto location = CurrentAcknowledgedPawn.GetRotation();
-
-	//g_overlay->draw_text_red(100, 100, "Pitch %d\Yaw %d\Roll %d\n", location.Pitch, location.Yaw, location.Roll);
-
-	//exit(0);
 	return true;
 }
 
@@ -385,7 +380,6 @@ void CallAimbot() {
 
 				FVector TargetVelocity = LockedPawn.GetVelocity();
 				float TravelTime = math::GetDistance(CurrentAcknowledgedPawn.GetLocation(), TargetLocation) / speed;
-				//printf("TravelTime: %f", TravelTime);
 				TargetLocation = {
 					(TargetLocation.X + TargetVelocity.X * TravelTime),
 					(TargetLocation.Y + TargetVelocity.Y * TravelTime),
@@ -399,7 +393,7 @@ void CallAimbot() {
 			AimRotation.Yaw = math::ClampYaw(AimRotation.Yaw);
 			AimRotation.Pitch = math::ClampPitch(AimRotation.Pitch);
 
-			if(smoothing) {
+			if(smoothing) { // idk kinda spagetti to me, but it works
 				FRotator currentRotation = CurrentController.GetRotation();
 				currentRotation.Roll = 0;
 
@@ -426,7 +420,6 @@ void CallAimbot() {
 
 				diff.Yaw = (int)(dist * smoothAmount);
 				diff.Pitch = (int)(diff.Pitch * smoothAmount);
-				//g_overlay->draw_text_red(200, 200, "%d -> %d, (%d,%d) at %d", math::ClampYaw(currentRotation.Yaw) * 360 / Full360, math::ClampYaw(AimRotation.Yaw) * 360 / Full360, dist1 * 360 / Full360, dist2 * 360 / Full360, dist * 360 / Full360);
 				AimRotation = currentRotation + diff;
 			}
 			AimRotation.Pitch = AimRotation.Pitch;
